@@ -10,6 +10,7 @@ const spawn = require('child_process').spawn;
 function createAward(width, height, textArr, templatePath, categoryPath, outputPath, pngOutput, numberOfStars, color, timeFrame) {
 
     async function start() {
+        // get icon based on path
         let categorySVG = await new Promise((resolve, rej) => {
             JSDOM.fromFile(categoryPath).then(dom => {
                 resolve(dom.window.document.body.innerHTML);
@@ -18,43 +19,53 @@ function createAward(width, height, textArr, templatePath, categoryPath, outputP
 
         await JSDOM.fromFile(templatePath).then(dom => {
             let doc = dom.window.document;
+
+            // push text to svg, center it
             d3.select(doc).selectAll("tspan").data(textArr).text(d => d)
             d3.select(doc).selectAll("textPath").attr("startOffset", "50%").attr("text-anchor", "middle");
 
+            // getStars draws 1, 2 or 3 stars based on numberOfStars
             d3.select(doc.querySelector("g#luther_category").parentNode).append("g").attr("id", "luther_stars").html(getStars(numberOfStars));
 
+            // push icon to svg
             d3.select(doc).select("g#luther_category").html(categorySVG);
-            d3.select(doc).select("g#luther_category g g").attr("style", "width: 50px; height: 50px;")
 
+            // change color, transparency.. based on timeFrame
             switch (timeFrame) {
                 case "month":
                     d3.select(doc).select("path#outside").attr("style", "fill-opacity: 0")
                     d3.select(doc).select("path#mid").attr("style", "fill: " + color)
                     d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 28")
                     d3.select(doc).selectAll("g#luther_stars polygon").attr("style", "fill: " + color)
+                    d3.select(doc).select("g#luther_category").attr("style", "fill: " + color)
                     break;
                 case "quarter":
                     d3.select(doc).select("path#outside").attr("style", "fill: " + color)
                     d3.select(doc).select("path#mid").attr("style", "fill: " + color)
                     d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 28")
                     d3.select(doc).selectAll("g#luther_stars polygon").attr("style", "fill: " + color)
+                    d3.select(doc).select("g#luther_category").attr("style", "fill: " + color)
                     break;
                 case "exclusive":
                     d3.select(doc).select("path#outside").attr("style", "fill: " + color)
                     d3.select(doc).select("path#mid").attr("style", "fill: " + color)
                     d3.select(doc).select("path#inside").attr("style", "fill: #333333")
+                    d3.select(doc).select("g#luther_category").attr("style", "fill: #FFFFFF")
                     break;
                 default:
                     d3.select(doc).select("path#outside").attr("style", "fill: " + color)
                     d3.select(doc).select("path#mid").attr("style", "fill: " + color)
                     d3.select(doc).select("path#inside").attr("style", "fill: " + color)
+                    d3.select(doc).select("g#luther_category").attr("style", "fill: #FFFFFF")
                     break;
             }
 
+            // write svg to file
             fs.writeFileSync(outputPath, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- Generator: LutherX transform script -->\n" + dom.window.document.body.innerHTML, function (error) {
                 if (error) throw error;
             });
 
+            // convert to png in python and write to file
             let proc = spawn('python3', ['./svg2png.py', outputPath, pngOutput, width, height]);
         });
     }
@@ -79,4 +90,4 @@ function createAward(width, height, textArr, templatePath, categoryPath, outputP
 textArr = ["2020", "EXCLUSIVE AWARD", "HARD WORKING"];
 color = "#F4C738"
 timeFrame = "exclusive"
-createAward(3200, 3200, textArr, "./Award_template_2.svg", "./004-team.svg", "./Awards_new_text_update.svg", "./Exclusive.png", 3, color, timeFrame)
+createAward(1600, 1600, textArr, "./Award_template_2.svg", "./004-team.svg", "./Awards_new_text_update.svg", "./Exclusive.png", 3, color, timeFrame)
