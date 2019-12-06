@@ -35,14 +35,14 @@ function createAward(width, height, textArr, templatePath, categoryPath, outputP
                 case "month":
                     d3.select(doc).select("path#outside").attr("style", "fill-opacity: 0")
                     d3.select(doc).select("path#mid").attr("style", "fill: " + color)
-                    d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 28")
+                    d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 25")
                     d3.select(doc).selectAll("g#luther_stars polygon").attr("style", "fill: " + color)
                     d3.select(doc).select("g#luther_category").attr("style", "fill: " + color)
                     break;
                 case "quarter":
                     d3.select(doc).select("path#outside").attr("style", "fill: " + color)
                     d3.select(doc).select("path#mid").attr("style", "fill: " + color)
-                    d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 28")
+                    d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 25")
                     d3.select(doc).selectAll("g#luther_stars polygon").attr("style", "fill: " + color)
                     d3.select(doc).select("g#luther_category").attr("style", "fill: " + color)
                     break;
@@ -66,7 +66,7 @@ function createAward(width, height, textArr, templatePath, categoryPath, outputP
             });
 
             // convert to png in python and write to file
-            let proc = spawn('python3', ['./svg2png.py', outputPath, pngOutput, width, height]);
+            let proc = spawn('python3', ['./awards/svg2png.py', outputPath, pngOutput, width, height]);
         });
     }
 
@@ -87,7 +87,7 @@ function createAward(width, height, textArr, templatePath, categoryPath, outputP
     }
 }
 
-textArr = ["2020", "EXCLUSIVE AWARD", "HARD WORKING"];
-color = "#F4C738"
-timeFrame = "exclusive"
-createAward(1600, 1600, textArr, "./Award_template_2.svg", "./004-team.svg", "./Awards_new_text_update.svg", "./Exclusive.png", 3, color, timeFrame)
+textArr = ["Q2/2021", "EMPLOYEE OF THE QUARTER", "BEST SALESMAN"];
+color = "#D30324"
+timeFrame = "quarter"
+createAward(1600, 1600, textArr, "./awards/template.svg", "./awards/icon.svg", "./new.svg", "./new.png", 3, color, timeFrame)
