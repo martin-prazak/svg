@@ -5,9 +5,10 @@ const {
     JSDOM
 } = jsdom;
 var css = require("css");
-const spawn = require('child_process').spawn;
+const spawn = require('child_process').spawnSync;
 
-async function createAward(width, height, textArr, templatePath, categoryPath, outputPath, pngOutput, numberOfStars, color, timeFrame) {
+async function createAward(width, height, textArr, templatePath, categoryPath, numberOfStars, color, timeFrame) {
+
     // get icon based on path
     let categorySVG = await new Promise((resolve) => {
         JSDOM.fromFile(categoryPath).then(dom => {
@@ -15,7 +16,7 @@ async function createAward(width, height, textArr, templatePath, categoryPath, o
         });
     });
 
-    await JSDOM.fromFile(templatePath).then(dom => {
+    let mainSVG = await JSDOM.fromFile(templatePath).then(dom => {
         let doc = dom.window.document;
 
         // push text to svg, center it
@@ -71,21 +72,22 @@ async function createAward(width, height, textArr, templatePath, categoryPath, o
                 break;
         }
 
-        // return ("<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- Generator: LutherX transform script -->\n" + dom.window.document.body.innerHTML)
-
-        // write svg to file
-        fs.writeFileSync(outputPath, "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- Generator: LutherX transform script -->\n" + dom.window.document.body.innerHTML, function (error) {
-            if (error) throw error;
-        });
+        let newSVG = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- Generator: LutherX transform script -->\n" + dom.window.document.body.innerHTML
 
         // convert to png in python and write to file
-        let proc = spawn('python3', ['./awards/svg2png.py', outputPath, pngOutput, width, height]);
+        let proc = spawn('python3', ['./awards/svg2png.py', newSVG, width, height]);
+        return proc.stdout.toString()
     });
+    mainSVG = mainSVG.slice(2, mainSVG.length - 2)
+    return mainSVG
 }
 
-// #########  TEST INPUT  #########################################################################################################################
+async function originalContext() {
+    textArr = ["2020", "testing", "jesus"];
+    color = "#1487E2"
+    timeFrame = "quarter"
+    let test = await createAward(800, 800, textArr, "./awards/template.svg", "./awards/icon.svg", 3, color, timeFrame)
+    console.log(test)
+}
 
-textArr = ["2020", "EMPLOYEE OF THE YEAR", "HARDEST WORKER"];
-color = "#F4C738"
-timeFrame = "year"
-console.log(createAward(3200, 3200, textArr, "./awards/template.svg", "./awards/icon.svg", "./new.svg", "./new.png", 2, color, timeFrame))
+originalContext()
