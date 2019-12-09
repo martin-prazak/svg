@@ -7,22 +7,29 @@ const {
 var css = require("css");
 const spawn = require('child_process').spawnSync;
 
-async function createAward(width, height, textArr, templatePath, categoryPath, numberOfStars, color, timeFrame) {
 
-    // get icon based on path
-    let categorySVG = await new Promise((resolve) => {
-        JSDOM.fromFile(categoryPath).then(dom => {
+
+
+
+
+async function createAward(width, height, textArr, templatePath, iconPath, numberOfStars, color, timeFrame, outputAsSvg) {
+
+    // get icon svg
+    let iconSVG = await new Promise((resolve) => {
+        JSDOM.fromFile(iconPath).then(dom => {
             resolve(dom.window.document.body.innerHTML);
         });
     });
 
+    // get main svg
     let mainSVG = await JSDOM.fromFile(templatePath).then(dom => {
         let doc = dom.window.document;
 
-        // push text to svg, center it
+        // push text form array to svg and center it
         d3.select(doc).selectAll("tspan").data(textArr).text(d => d)
         d3.select(doc).selectAll("textPath").attr("startOffset", "50%").attr("text-anchor", "middle");
 
+        // based on number of stars push 1, 2 or 3 stars to svg
         switch (numberOfStars) {
             case 1:
                 d3.select(doc.querySelector("g#luther_category").parentNode).append("g").attr("id", "luther_stars").html(`<polygon style="fill:#FFFFFF;" points="830.9631,860.3563 837.087,872.7647 850.7804,874.7545 840.8717,884.413 843.2109,898.0511 830.9631,891.6121 818.7153,898.0511 821.0544,884.413 811.1457,874.7545 824.8392,872.7647"/>`);
@@ -38,23 +45,22 @@ async function createAward(width, height, textArr, templatePath, categoryPath, n
                 break;
         }
 
+        // push icon svg to main svg
+        d3.select(doc).select("g#luther_category").html(iconSVG);
 
-        // push icon to svg
-        d3.select(doc).select("g#luther_category").html(categorySVG);
-
-        // change color, transparency.. based on timeFrame
+        // based on timeframe set transparency, text color and award color
         switch (timeFrame) {
             case "month":
                 d3.select(doc).select("path#outside").attr("style", "fill-opacity: 0")
                 d3.select(doc).select("path#mid").attr("style", "fill: " + color)
-                d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 25")
+                d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 28")
                 d3.select(doc).selectAll("g#luther_stars polygon").attr("style", "fill: " + color)
                 d3.select(doc).select("g#luther_category").attr("style", "fill: " + color)
                 break;
             case "quarter":
                 d3.select(doc).select("path#outside").attr("style", "fill: " + color)
                 d3.select(doc).select("path#mid").attr("style", "fill: " + color)
-                d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 25")
+                d3.select(doc).select("tspan#period").attr("style", "fill: " + color + "; font-size: 28")
                 d3.select(doc).selectAll("g#luther_stars polygon").attr("style", "fill: " + color)
                 d3.select(doc).select("g#luther_category").attr("style", "fill: " + color)
                 break;
@@ -72,22 +78,43 @@ async function createAward(width, height, textArr, templatePath, categoryPath, n
                 break;
         }
 
+        // changed svg in variable
         let newSVG = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<!-- Generator: LutherX transform script -->\n" + dom.window.document.body.innerHTML
 
-        // convert to png in python and write to file
-        let proc = spawn('python3', ['./awards/svg2png.py', newSVG, width, height]);
-        return proc.stdout.toString()
+        /*
+        if output as svg is true > return changed svg as string
+                            else > run python script to convert svg to png and return png in base64
+        */
+        if (outputAsSvg) {
+            return newSVG
+        } else {
+            let proc = spawn('python3', ['./awards/svg2png.py', newSVG, width, height]);
+            return proc.stdout.toString()
+        }
     });
-    mainSVG = mainSVG.slice(2, mainSVG.length - 2)
+
+    /*
+    if output as svg is false > remove base64 prefix and quotes and return
+                         else > return svg
+    */
+    if (!outputAsSvg) {
+        mainSVG = mainSVG.slice(2, mainSVG.length - 2)
+        // convert b64 to png
+        mainSVG = Buffer.from(mainSVG, "base64")
+        fs.writeFileSync('./my-file.png', mainSVG);
+    }
     return mainSVG
 }
 
-async function originalContext() {
-    textArr = ["2020", "testing", "jesus"];
-    color = "#1487E2"
-    timeFrame = "quarter"
-    let test = await createAward(800, 800, textArr, "./awards/template.svg", "./awards/icon.svg", 3, color, timeFrame)
-    console.log(test)
-}
 
-originalContext()
+
+
+
+// testing
+(async () => {
+    textArr = ["6 2020", "EMPLOYEE OF THE MONTH", "BEST SALESMAN"];
+    color = "#92D303"
+    timeFrame = "month"
+    let test = await createAward(1600, 1600, textArr, "./awards/template.svg", "./awards/icon.svg", 1, color, timeFrame, false)
+    console.log(test)
+})();
